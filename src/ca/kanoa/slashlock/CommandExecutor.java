@@ -75,7 +75,12 @@ public class CommandExecutor implements org.bukkit.command.CommandExecutor {
 		Sign sign = (Sign) signBlock.getState();
 		sign.setData(signData);
 		sign.setLine(1, ChatColor.DARK_RED + "Locked");
-		sign.setLine(2, player.getName());
+		if (player.getName().length() <= 15) {
+			sign.setLine(2, player.getName());
+		} else {
+			sign.setLine(2, player.getName().substring(0, 15));
+			sign.setLine(3, player.getName().substring(15));
+		}
 		sign.update(true);
 
 		//Alert the user that the chest is now locked

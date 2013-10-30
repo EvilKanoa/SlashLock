@@ -1,11 +1,8 @@
 package ca.kanoa.slashlock;
 
-import java.util.Arrays;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class EventListener implements Listener {
 
@@ -24,14 +22,10 @@ public class EventListener implements Listener {
 				event.getPlayer().hasPermission("slashlock.bypass")) {
 			return;
 		}
-		String[] users = SharedUtils.getUsers(SharedUtils.getSigns(blocks));
-		if (users.length == 0) {
+
+		if (SharedUtils.hasPermission(event.getPlayer().getName(), 
+				SharedUtils.getBlock(event.getInventory().getHolder()))) {
 			return;
-		}
-		for (String user : users) {
-			if (user.equalsIgnoreCase(event.getPlayer().getName())) {
-				return;
-			}
 		}
 
 		//If the player does NOT have permission to open this chest
@@ -42,88 +36,88 @@ public class EventListener implements Listener {
 
 	@EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
 	public void onBlockBreak(BlockBreakEvent event) {
+		//Check if it's a sign or chest that is being broken, otherwise ignore it
 		if (event.getBlock().getType() == Material.WALL_SIGN) {
 			Sign sign = (Sign) event.getBlock().getState();
+			//Check to see if the player has permission/is an owner of the sign.
 			if (sign.getLine(1).equalsIgnoreCase(ChatColor.DARK_RED + "Locked")
-					&& !sign.getLine(2).equalsIgnoreCase(event.getPlayer()
-							.getName()) && !event.getPlayer()
+					&& !SharedUtils.hasPermission(event.getPlayer().getName(), 
+							event.getBlock()) && !event.getPlayer()
 							.hasPermission("slashlock.unlock")) {
 				event.getPlayer().sendMessage(ChatColor.RED + 
-						"You don't have permission to unlock a chest!");
+						"You don't have permission to unlock this chest!");
 				event.setCancelled(true);
 			} else {
+				//If the player does have permission and it's a lock sign, 
+				// cancel the drop 
+				// (by canceling the event but deleting the block)
+				if (sign.getLine(1).equalsIgnoreCase(ChatColor.DARK_RED + "Locked")) {
+					event.setCancelled(true);
+					event.getBlock().setType(Material.AIR);
+				}
 				return;
 			}
 		} else if (event.getBlock().getType() == Material.CHEST || 
 				event.getBlock().getType() == Material.TRAPPED_CHEST) {
-			String[] users = SharedUtils.getUsers(SharedUtils.getSigns(
-					SharedUtils.getChests(SharedUtils.getHolder(event
-					.getBlock()))));
-			if (users.length == 0 || Arrays.asList(users).contains(
-					event.getPlayer().getName()) || 
-					event.getPlayer().hasPermission("slashlock.unlock")) {
+			if (SharedUtils.hasPermission(event.getPlayer().getName(), 
+					event.getBlock()) || event.getPlayer()
+					.hasPermission("slashlock.unlock")) {
+				//Remove any old lock signs so infinite sign glitch can't be 
+				// exploited
+				for (Sign s : SharedUtils.getSigns(SharedUtils.getChests(
+						SharedUtils.getHolder(event.getBlock())))) {
+					if (SharedUtils.isLockSign(s)) {
+						s.getBlock().setType(Material.AIR);
+					}
+				}
 				return;
 			} else {
 				event.getPlayer().sendMessage(ChatColor.RED + 
-						"You don't have permission to unlock a chest!");
+						"You don't have permission to unlock this chest!");
 				event.setCancelled(true);
 			}
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	@EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
 	public void onSignPlace(SignChangeEvent event) {
 		if (!event.getLine(1).equalsIgnoreCase("locked")) {
 			return;
 		}
 		if (event.getLine(1).equalsIgnoreCase("locked")) {
-			if ((event.getLine(2).equalsIgnoreCase(event.getPlayer().getName()) ||
+			if (((event.getLine(2) + event.getLine(3)).equalsIgnoreCase(
+					event.getPlayer().getName()) ||
 					event.getLine(2).equalsIgnoreCase("") ||
 					event.getPlayer().hasPermission("slashlock.lockother")) &&
 					event.getPlayer().hasPermission("slashlock.lock")) {
 				//Check to see if the chest is already locked
-				Block chestBlock = null;
-				switch (event.getBlock().getData()) {
-				case 2: 
-					chestBlock = event.getBlock().getRelative(BlockFace.NORTH
-							.getOppositeFace());
-					break;
-				case 5: 
-					chestBlock = event.getBlock().getRelative(BlockFace.EAST
-							.getOppositeFace());
-					break;
-				case 3: 
-					chestBlock = event.getBlock().getRelative(BlockFace.SOUTH
-							.getOppositeFace());
-					break;
-				case 4: 
-					chestBlock = event.getBlock().getRelative(BlockFace.WEST
-							.getOppositeFace());
-					break;
-				}
-				if (chestBlock.getType() != Material.CHEST && chestBlock
-						.getType() != Material.TRAPPED_CHEST) {
-					return;
-				}
-				String[] users = SharedUtils.getUsers(SharedUtils.getSigns(SharedUtils.getChests(
-						SharedUtils.getHolder(chestBlock))));
-				if (users.length > 0 && !Arrays.asList(users).contains(event
-						.getPlayer().getName())) {
+				if (!SharedUtils.hasPermission(event.getPlayer().getName(), 
+						event.getBlock())) {
 					event.getPlayer().sendMessage(ChatColor.RED + "That chest is already locked!");
 					event.setCancelled(true);
 					event.getBlock().breakNaturally();
 					return;
 				}
 
+				//Turn the sign into a proper Lock Sign
 				event.setLine(0, "");
 				event.setLine(1, ChatColor.DARK_RED + "Locked");
-				if (event.getPlayer().getName().equalsIgnoreCase(event
-						.getLine(2)) ||
+				if (event.getPlayer().getName().equalsIgnoreCase(
+						event.getLine(2) + event.getLine(3)) ||
 						event.getLine(2).equalsIgnoreCase("")) {
-					event.setLine(2, event.getPlayer().getName());
+					String name = event.getPlayer().getName();
+					if (name.length() <= 15) {
+						event.setLine(2, name);
+						event.setLine(3, "");
+					} else {
+						event.setLine(2, name.substring(0, 15));
+						event.setLine(3, name.substring(15));
+					}
 				}
-				event.setLine(3, "");
+				
+				//Give the player a sign item back 'cause Lock Signs are free :D
+				event.getPlayer().getInventory().addItem(
+						new ItemStack(Material.SIGN));
 			} else {
 				event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission!");
 				event.setCancelled(true);

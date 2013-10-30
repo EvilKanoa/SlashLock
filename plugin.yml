@@ -1,6 +1,6 @@
 name: SlashLock
 main: ca.kanoa.slashlock.SlashLock
-version: 1.00.000
+version: 1.01.000
 
 permissions:
     slashlock.lock:
