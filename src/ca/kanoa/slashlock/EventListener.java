@@ -88,7 +88,9 @@ public class EventListener implements Listener {
 			if (((event.getLine(2) + event.getLine(3)).equalsIgnoreCase(
 					event.getPlayer().getName()) ||
 					event.getLine(2).equalsIgnoreCase("") ||
-					event.getPlayer().hasPermission("slashlock.lockother")) &&
+					event.getPlayer().hasPermission("slashlock.lockother") ||
+					SharedUtils.hasOwnership(event.getPlayer().getName(), 
+							event.getBlock())) &&
 					event.getPlayer().hasPermission("slashlock.lock")) {
 				//Check to see if the chest is already locked
 				if (!SharedUtils.hasPermission(event.getPlayer().getName(), 

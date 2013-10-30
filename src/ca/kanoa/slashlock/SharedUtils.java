@@ -100,8 +100,16 @@ public class SharedUtils {
 		return sign.getLine(1).equalsIgnoreCase(ChatColor.DARK_RED + "Locked");
 	}
 	
-	@SuppressWarnings("deprecation")
+	public static boolean hasOwnership(String player, Block block) {
+		return hasPermission(player, block, true);
+	}
+	
 	public static boolean hasPermission(String player, Block block) {
+		return hasPermission(player, block, false);
+	}
+	
+	@SuppressWarnings("deprecation")
+	private static boolean hasPermission(String player, Block block, boolean ownership) {
 		//Find the chest depending on weather `block` is a sign vs chest
 		InventoryHolder chest;
 		if (block.getType() == Material.CHEST || block.getType() == 
@@ -138,6 +146,6 @@ public class SharedUtils {
 		
 		String[] owners = getUsers(getSigns(getChests(chest)));
 		
-		return owners.length == 0 || Arrays.asList(owners).contains(player);
+		return (owners.length == 0 && !ownership)|| Arrays.asList(owners).contains(player);
 	}
 }
