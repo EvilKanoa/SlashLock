@@ -1,0 +1,25 @@
+name: SlashLock
+main: ca.kanoa.slashlock.SlashLock
+version: 1.00.000
+
+permissions:
+    slashlock.lock:
+        description: Allows a user to lock a chest with the /lock command or a Lock Sign.
+        default: op
+    slashlock.bypass:
+        description: Allows a user to bypass and access a locked chest.
+        default: op
+    slashlock.unlock:
+        description:  Allows a user to destroy/unlock a locked chest.
+        default: op
+    slashlock.lockother:
+        description: Allows a user to lock a chest to a different user.
+        default: op
+        
+commands:
+    lock:
+        description: Locks whatever chest you're locking at currently.
+        usage: /<command> while looking at a chest.
+        aliases: [lockchest, chestlock]
+        permission: slashlock.lock
+        permission-message: You don't have permission!

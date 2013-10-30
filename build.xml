@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<project name="${project.name}" default="jar" basedir=".">
+    
+  <!-- Sets variables which can later be used. -->
+  <!-- The value of a property is accessed via ${} -->
+  <property file="properties/build.properties"/>
+
+  <!-- Deletes the existing build, docs and dist directory -->
+  <target name="clean">
+    <delete dir="${build.dir}" />
+    <delete dir="${docs.dir}" />
+    <delete dir="${dist.dir}" />
+  </target>
+
+  <!-- Creates the build, docs and dist directory -->
+  <target name="makedir">
+    <mkdir dir="${build.dir}" />
+    <mkdir dir="${docs.dir}" />
+    <mkdir dir="${dist.dir}" />
+  </target>
+
+  <!-- Compiles the java code -->
+  <target name="compile" depends="clean, makedir, setenv">
+    <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="true" debuglevel="lines,vars,source">
+      <classpath>
+        <fileset dir="${lib.dir}">
+    	  <include name="**/*.jar" />
+    	</fileset>
+      </classpath>
+    </javac>
+
+  </target>
+
+  <!-- Creates Javadoc -->
+  <target name="docs" depends="compile">
+    <javadoc packagenames="src" sourcepath="${src.dir}" destdir="${docs.dir}">
+      <!-- Define which files / directory should get included, we include all -->
+       <fileset dir="${src.dir}">
+         <include name="**" />
+       </fileset>
+       <classpath>
+         <fileset dir="${lib.dir}">
+    	   <include name="**/*.jar" />
+         </fileset>
+       </classpath>
+    </javadoc>
+  </target>
+
+  <!-- Sets the bukkit.dir variable based on what OS we're running on -->
+  <target name="setenv">
+    <condition property="isUnix">
+      <os family="unix"/>
+    </condition>
+    <condition property="isWindows">
+      <os family="windows"/>
+    </condition>
+  </target>
+  <target name="setwindowsenv" if="isWindows">
+  	<echo>This is a Windows machine.</echo>
+    <property file="properties/windows.properties"/>
+  </target>
+  <target name="setunixenv" if="isUnix">
+  	<echo>This is an Unix machine.</echo>
+    <property file="properties/unix.properties"/>
+  </target>
+  
+  <!-- Creates the jar file -->
+  <target name="jar" depends="compile">
+  	<jar destfile="${dist.dir}\${project.name}.jar" basedir="${build.dir}">
+      <zipfileset dir="." includes="plugin.yml"/>
+      <zipfileset dir="." includes="config.yml"/>
+  	  <!-- This is where you add files to the final jar -->
+    </jar>
+  </target>
+
+  <!-- Copys the compiled jar file to Bukkit's /plugin folder -->
+  <target name="copy" depends="jar, setwindowsenv, setunixenv">
+	<copy file="${dist.dir}\${project.name}.jar" overwrite="true" tofile="${bukkit.dir}\plugins\${project.name}.jar" />
+  </target>
+
+</project> 
