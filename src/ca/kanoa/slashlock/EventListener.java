@@ -10,11 +10,24 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class EventListener implements Listener {
 
+	@EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
+	public void onInventoryMoveItem (InventoryMoveItemEvent event) {
+		Sign[] signs = SharedUtils.getSigns(SharedUtils.getChests(event
+				.getSource().getHolder()));
+		for (Sign s : signs) {
+			if (SharedUtils.isLockSign(s)) {
+				event.setCancelled(true);
+				break;
+			}
+		}
+	}
+	
 	@EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
 	public void onInventoryOpen(InventoryOpenEvent event) {
 		Block[] blocks = SharedUtils.getChests(event.getInventory().getHolder());
